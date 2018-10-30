@@ -243,7 +243,7 @@ object FromModel extends App {
   def fieldForForm(name: String, _type: String, length: String, required: String): String = {
     val template =
       s"""<label for="${cToCamel(name)}" class="sr-only" ngbButtonLabel i18n>${cToCamel(name)}:</label>
-         |<input type="text" name="${cToCamel(name)}" ngbButton formControlName="${cToCamel(name)}" aria-describedby="${cToCamel(name)}Help" i18n-placeholde rplaceholder="input${cToPascal(name)}" class="form-control">
+         |<input type="text" id="${cToCamel(name)}" ngbButton formControlName="${cToCamel(name)}" aria-describedby="${cToCamel(name)}Help" i18n-placeholde rplaceholder="input${cToPascal(name)}" class="form-control">
        """.stripMargin
 
     template
