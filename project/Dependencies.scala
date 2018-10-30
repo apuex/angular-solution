@@ -6,7 +6,7 @@ object Dependencies {
   lazy val artifactGroupName     = "com.github.apuex.angularsolution"
 
   lazy val runtime         = "com.github.apuex.springbootsolution" %%  "runtime"                   % "1.0.6"
-  lazy val codegen         = "com.github.apuex.springbootsolution" %%  "codegen"                   % "1.0.5"
+  lazy val codegen         = "com.github.apuex.springbootsolution" %%  "codegen"                   % "1.0.6"
   lazy val scalaXml        = "org.scala-lang.modules"    %%  "scala-xml"                           % "1.0.6"
 
   lazy val jodaTime        = "joda-time"                 %   "joda-time"                           % "2.9.9"
