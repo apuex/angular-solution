@@ -33,7 +33,7 @@ object FromModel extends App {
     serviceForModule(entity, entityName, moduleDir)
     tsForModule(entity, entityName, moduleDir)
     routingForModule(entity, entityName, moduleDir)
-    componentForEntity(entity, entityName, moduleDir)
+    componentForEntity(model, entity, entityName, moduleDir)
   }
 
   def messageForModule(model: Node, entity: Node, entityName: String, moduleDir: String): Unit = {
@@ -140,7 +140,7 @@ object FromModel extends App {
     val printWriter = new PrintWriter(s"${moduleDir}/${cToShell(entityName)}.module.ts", "utf-8")
 
     val template =
-      s"""
+      s"""// ${cToPascal(entityName)}.module.ts: 100% generated, do not edit.
         |import { NgModule }       from '@angular/core';
         |import { CommonModule }   from '@angular/common';
         |import { FormsModule }    from '@angular/forms';
@@ -169,7 +169,7 @@ object FromModel extends App {
     val printWriter = new PrintWriter(s"${moduleDir}/${cToShell(entityName)}-routing.module.ts", "utf-8")
 
     val template =
-      s"""
+      s"""// ${cToPascal(entityName)}-routing.module.ts: 100% generated, do not edit.
          |import { NgModule }             from '@angular/core';
          |import { RouterModule, Routes } from '@angular/router';
          |import { ${cToPascal(entityName)}Service }          from './${cToShell(entityName)}.service';
@@ -194,31 +194,70 @@ object FromModel extends App {
     printWriter.close()
   }
 
-  def componentForEntity(entity: Node, entityName: String, moduleDir: String): Unit = {
+  def componentForEntity(model: Node, entity: Node, entityName: String, moduleDir: String): Unit = {
     val componentDir = s"${srcDir}/${cToShell(entityName)}/${cToShell(entityName)}"
     new File(componentDir).mkdirs()
 
     cssForComponent(entity, entityName, componentDir)
-    htmlForComponent(entity, entityName, componentDir)
+    htmlForComponent(model, entity, entityName, componentDir)
     tsForComponent(entity, entityName, componentDir)
   }
 
   def cssForComponent(entity: Node, entityName: String, componentDir: String): Unit = {
     val printWriter = new PrintWriter(s"${componentDir}/${cToShell(entityName)}.component.css", "utf-8")
-    printWriter.println()
+
+    val template =
+      s"""/* ${cToPascal(entityName)}.component.css: 100% generated, do not edit. */
+         |
+       """.stripMargin
+
+    printWriter.print(template)
     printWriter.close()
   }
 
-  def htmlForComponent(entity: Node, entityName: String, componentDir: String): Unit = {
+  def htmlForComponent(model: Node, entity: Node, entityName: String, componentDir: String): Unit = {
     val printWriter = new PrintWriter(s"${componentDir}/${cToShell(entityName)}.component.html", "utf-8")
-    printWriter.println()
+
+    val template =
+      s"""<!-- ${cToPascal(entityName)}.component.html: 100% generated, do not edit. -->
+         |<form [formGroup]="${cToCamel(entityName)}Form" (ngSubmit)="submit(${cToCamel(entityName)}Form.value)">
+         |  ${indent(fieldsForForm(model, entity, entityName), 2)}
+         |  <button type="submit" class="btn btn-lg btn-primary btn-block" i18n>OK</button>
+         |  <button class="btn btn-lg btn-secondary btn-block" i18n>Cancel</button>
+         |</form>
+       """.stripMargin
+
+    printWriter.print(template)
     printWriter.close()
 
+  }
+
+  def fieldsForForm(model: Node, entity: Node, entityName: String): String = {
+    persistentColumnsExtended(model, entity)
+      .map(f => (f.\@("no"), f.\@("name"), f.\@("type"), f.\@("length"), f.\@("required")))
+      .sortWith((x, y) => x._1 < y._1)
+      .map(f => fieldForForm(f._2, f._3, f._4, f._5))
+      .reduce((x, y) => s"${x}\n${y}")
+  }
+
+  def fieldForForm(name: String, _type: String, length: String, required: String): String = {
+    val template =
+      s"""<label for="${cToCamel(name)}" class="sr-only" ngbButtonLabel i18n>${cToCamel(name)}:</label>
+         |<input type="text" name="${cToCamel(name)}" ngbButton formControlName="${cToCamel(name)}" aria-describedby="${cToCamel(name)}Help" i18n-placeholde rplaceholder="input${cToPascal(name)}" class="form-control">
+       """.stripMargin
+
+    template
   }
 
   def tsForComponent(entity: Node, entityName: String, componentDir: String): Unit = {
     val printWriter = new PrintWriter(s"${componentDir}/${cToShell(entityName)}.component.ts", "utf-8")
-    printWriter.println()
+
+    val template =
+      s"""// ${cToPascal(entityName)}.component.ts: 100% generated, do not edit.
+         |
+       """.stripMargin
+
+    printWriter.print(template)
     printWriter.close()
   }
 }
