@@ -11,32 +11,32 @@ import com.github.apuex.springbootsolution.runtime.TextUtils._
 import scala.xml.{Node, Text}
 
 object FromModel extends App {
-  val xml = ModelLoader(args(0)).xml
-  val modelName = xml.attribute("name").asInstanceOf[Some[Text]].get.data
+  val model = ModelLoader(args(0)).xml
+  val modelName = model.attribute("name").asInstanceOf[Some[Text]].get.data
   val projectRoot = s"${System.getProperty("project.root", "target/generated")}"
   val projectDir = s"${projectRoot}/${cToShell(modelName)}/${cToShell(modelName)}-frontend"
   val srcDir = s"${projectDir}/src/app"
 
   new File(srcDir).mkdirs()
 
-  xml.child.filter(x => x.label == "entity")
+  model.child.filter(x => x.label == "entity")
     .foreach(x => {
-      moduleForEntity(xml, x)
+      moduleForEntity(x)
     })
 
-  def moduleForEntity(model: Node, entity: Node): Unit = {
+  def moduleForEntity(entity: Node): Unit = {
     val entityName = entity.\@("name")
     val moduleDir = s"${srcDir}/${cToShell(entityName)}"
     new File(moduleDir).mkdirs()
 
-    messageForModule(model, entity, entityName, moduleDir)
+    messageForModule(entity, entityName, moduleDir)
     serviceForModule(entity, entityName, moduleDir)
     tsForModule(entity, entityName, moduleDir)
     routingForModule(entity, entityName, moduleDir)
-    componentForEntity(model, entity, entityName, moduleDir)
+    componentForEntity(entity, entityName, moduleDir)
   }
 
-  def messageForModule(model: Node, entity: Node, entityName: String, moduleDir: String): Unit = {
+  def messageForModule(entity: Node, entityName: String, moduleDir: String): Unit = {
     val printWriter = new PrintWriter(s"${moduleDir}/${cToShell(entityName)}.ts", "utf-8")
 
     val columns = persistentColumnsExtended(model, entity)
@@ -47,7 +47,7 @@ object FromModel extends App {
 
     val template =
       s"""// ${cToPascal(entityName)}.ts: 100% generated, do not edit.
-         |${messageDependencies(model, columns.map(f => f._3).filter(f => !isTypeScriptType(f)).toSet)}
+         |${messageDependencies(columns.map(f => f._3).filter(f => !isTypeScriptType(f)).toSet)}
          |
          |export class ${cToPascal(entityName)}Vo {
          |  ${indent(fields(columns), 2)};
@@ -78,7 +78,7 @@ object FromModel extends App {
     printWriter.close()
   }
 
-  def messageDependencies(model: Node, types: Set[String]): String = {
+  def messageDependencies(types: Set[String]): String = {
     val dep = types.map(f => (f, messages(entityFor(model, f), f)))
       .map(f => "import { %s } from '../%s/%s'".format(cToPascal(f._2), cToShell(f._1), cToShell(f._1)))
     if(dep.isEmpty) "" else dep.reduce((x, y) => "%s;\n%s".format(x, y))
@@ -114,13 +114,13 @@ object FromModel extends App {
     printWriter.close()
   }
 
-  def importMessageForModule(model: Node, entity: Node, entityName: String): Seq[String] = {
+  def importMessageForModule(entity: Node, entityName: String): Seq[String] = {
     val symbols: String = messages(entity, entityName)
     persistentColumnsExtended(model, entity)
       .map(f => f.\@("type"))
       .filter(f => !isTypeScriptType(f))
       .toSet[String]
-      .flatMap(f => importMessageForModule(model, entityFor(model, f), f))
+      .flatMap(f => importMessageForModule(entityFor(model, f), f))
       .toSeq ++ Seq(s"""import { ${symbols} } from './${cToShell(entityName)}'""")
   }
 
@@ -194,12 +194,12 @@ object FromModel extends App {
     printWriter.close()
   }
 
-  def componentForEntity(model: Node, entity: Node, entityName: String, moduleDir: String): Unit = {
+  def componentForEntity(entity: Node, entityName: String, moduleDir: String): Unit = {
     val componentDir = s"${srcDir}/${cToShell(entityName)}/${cToShell(entityName)}"
     new File(componentDir).mkdirs()
 
     cssForComponent(entity, entityName, componentDir)
-    htmlForComponent(model, entity, entityName, componentDir)
+    htmlForComponent(entity, entityName, componentDir)
     tsForComponent(entity, entityName, componentDir)
   }
 
@@ -215,13 +215,13 @@ object FromModel extends App {
     printWriter.close()
   }
 
-  def htmlForComponent(model: Node, entity: Node, entityName: String, componentDir: String): Unit = {
+  def htmlForComponent(entity: Node, entityName: String, componentDir: String): Unit = {
     val printWriter = new PrintWriter(s"${componentDir}/${cToShell(entityName)}.component.html", "utf-8")
 
     val template =
       s"""<!-- ${cToPascal(entityName)}.component.html: 100% generated, do not edit. -->
          |<form [formGroup]="${cToCamel(entityName)}Form" (ngSubmit)="submit(${cToCamel(entityName)}Form.value)">
-         |  ${indent(fieldsForForm(model, entity, entityName), 2)}
+         |  ${indent(fieldsForForm(entity, entityName), 2)}
          |  <button type="submit" class="btn btn-lg btn-primary btn-block" i18n>OK</button>
          |  <button class="btn btn-lg btn-secondary btn-block" i18n>Cancel</button>
          |</form>
@@ -232,7 +232,7 @@ object FromModel extends App {
 
   }
 
-  def fieldsForForm(model: Node, entity: Node, entityName: String): String = {
+  def fieldsForForm(entity: Node, entityName: String): String = {
     persistentColumnsExtended(model, entity)
       .map(f => (f.\@("no"), f.\@("name"), f.\@("type"), f.\@("length"), f.\@("required")))
       .sortWith((x, y) => x._1 < y._1)
@@ -241,12 +241,24 @@ object FromModel extends App {
   }
 
   def fieldForForm(name: String, _type: String, length: String, required: String): String = {
-    val template =
-      s"""<label for="${cToCamel(name)}" class="sr-only" ngbButtonLabel i18n>${cToCamel(name)}:</label>
-         |<input type="text" id="${cToCamel(name)}" ngbButton formControlName="${cToCamel(name)}" aria-describedby="${cToCamel(name)}Help" i18n-placeholde rplaceholder="input${cToPascal(name)}" class="form-control">
-       """.stripMargin
+    s"""${labelForField(name, _type, length, required)}
+      |${inputForField(name, _type, length, required)}""".stripMargin
+  }
 
-    template
+  def inputForField(name: String, _type: String, length: String, required: String): String = _type match {
+    case "bool" => checkboxForField(name, _type, length, required)
+    case "short" => textForField(name, _type, length, required)
+    case "byte" => textForField(name, _type, length, required)
+    case "int" => textForField(name, _type, length, required)
+    case "identity" => textForField(name, _type, length, required)
+    case "long" => textForField(name, _type, length, required)
+    case "decimal" => textForField(name, _type, length, required)
+    case "string" => if(length.toInt > 256) textAreaForField(name, _type, length, required) else textForField(name, _type, length, required)
+    case "timestamp" => datetimeForField(name, _type, length, required)
+    case "float" => textForField(name, _type, length, required)
+    case "double" => textForField(name, _type, length, required)
+    case "blob" => textForField(name, _type, length, required)
+    case _ => if(isEnum(model, _type)) selectForField(name, _type, length, required) else textForField(name, _type, length, required)
   }
 
   def tsForComponent(entity: Node, entityName: String, componentDir: String): Unit = {
@@ -260,4 +272,40 @@ object FromModel extends App {
     printWriter.print(template)
     printWriter.close()
   }
+
+  def labelForField(name: String, _type: String, length: String, required: String): String = {
+    val asterisk = if("true".equalsIgnoreCase(required)) "*" else ""
+
+    s"""<label for="${cToCamel(name)}" class="sr-only" ngbButtonLabel i18n>${cToCamel(name)}${asterisk}:</label>""".stripMargin
+  }
+
+  def textForField(name: String, _type: String, length: String, required: String): String = {
+      s"""<input type="text" id="${cToCamel(name)}" ngbButton formControlName="${cToCamel(name)}" aria-describedby="${cToCamel(name)}Help" i18n-placeholder placeholder="input${cToPascal(name)}" class="form-control">""".stripMargin
+  }
+
+  def checkboxForField(name: String, _type: String, length: String, required: String): String = {
+    s"""<input type="checkbox" id="${cToCamel(name)}" formControlName="${cToCamel(name)}" value="${cToCamel(name)}" aria-describedby="${cToCamel(name)}Help" i18n-placeholder placeholder="input${cToPascal(name)}" class="form-control"><span i18n>${cToCamel(name)}</span>""".stripMargin
+  }
+
+  def textAreaForField(name: String, _type: String, length: String, required: String): String = {
+    s"""<textarea id="${cToCamel(name)}" formControlName="${cToCamel(name)}" aria-describedby="${cToCamel(name)}Help" i18n-placeholder placeholder="input${cToPascal(name)}" class="md-textarea form-control">
+       |</textarea>""".stripMargin
+  }
+
+  def selectForField(name: String, _type: String, length: String, required: String): String = {
+    val prelude = s"""<select id="${cToCamel(name)}" ngbButton formControlName="${cToCamel(name)}" aria-describedby="${cToCamel(name)}Help" i18n-placeholder placeholder="input${cToPascal(name)}" class="form-control">""".stripMargin
+    val options = entityFor(model, _type).child
+      .filter(p => p.label == "row")
+      .map(f => (f.\@("id"), f.\@("name")))
+      .map(f => s"""<option value="${f._1}" i18n>${f._2}</option>""".stripMargin)
+      .reduce((x, y) => "%s\n%s".format(x, y))
+    val end = "</select>"
+
+    "%s\n%s\n%s".format(prelude, indent(options, 2, true), end)
+  }
+
+  def datetimeForField(name: String, _type: String, length: String, required: String): String = {
+    textForField(name, _type, length, required)
+  }
+
 }
