@@ -46,7 +46,7 @@ object FromModel extends App {
       .toSet
 
     val template =
-      s"""// ${cToPascal(entityName)}.ts: 100% generated, do not edit.
+      s"""// ${cToShell(entityName)}.ts: 100% generated, do not edit.
          |${messageDependencies(columns.map(f => f._3).filter(f => !isTypeScriptType(f)).toSet)}
          |
          |export class ${cToPascal(entityName)}Vo {
@@ -93,7 +93,7 @@ object FromModel extends App {
     val printWriter = new PrintWriter(s"${moduleDir}/${cToShell(entityName)}.service.ts", "utf-8")
 
     val template =
-      s"""// ${cToPascal(entityName)}.service.ts: 100% generated, do not edit.
+      s"""// ${cToShell(entityName)}.service.ts: 100% generated, do not edit.
          |import { Injectable } from '@angular/core';
          |import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
          |
@@ -140,7 +140,7 @@ object FromModel extends App {
     val printWriter = new PrintWriter(s"${moduleDir}/${cToShell(entityName)}.module.ts", "utf-8")
 
     val template =
-      s"""// ${cToPascal(entityName)}.module.ts: 100% generated, do not edit.
+      s"""// ${cToShell(entityName)}.module.ts: 100% generated, do not edit.
         |import { NgModule }       from '@angular/core';
         |import { CommonModule }   from '@angular/common';
         |import { FormsModule }    from '@angular/forms';
@@ -169,7 +169,7 @@ object FromModel extends App {
     val printWriter = new PrintWriter(s"${moduleDir}/${cToShell(entityName)}-routing.module.ts", "utf-8")
 
     val template =
-      s"""// ${cToPascal(entityName)}-routing.module.ts: 100% generated, do not edit.
+      s"""// ${cToShell(entityName)}-routing.module.ts: 100% generated, do not edit.
          |import { NgModule }             from '@angular/core';
          |import { RouterModule, Routes } from '@angular/router';
          |import { ${cToPascal(entityName)}Service }          from './${cToShell(entityName)}.service';
@@ -207,7 +207,7 @@ object FromModel extends App {
     val printWriter = new PrintWriter(s"${componentDir}/${cToShell(entityName)}.component.css", "utf-8")
 
     val template =
-      s"""/* ${cToPascal(entityName)}.component.css: 100% generated, do not edit. */
+      s"""/* ${cToShell(entityName)}.component.css: 100% generated, do not edit. */
          |
        """.stripMargin
 
@@ -219,7 +219,7 @@ object FromModel extends App {
     val printWriter = new PrintWriter(s"${componentDir}/${cToShell(entityName)}.component.html", "utf-8")
 
     val template =
-      s"""<!-- ${cToPascal(entityName)}.component.html: 100% generated, do not edit. -->
+      s"""<!-- ${cToShell(entityName)}.component.html: 100% generated, do not edit. -->
          |<form [formGroup]="${cToCamel(entityName)}Form" (ngSubmit)="submit(${cToCamel(entityName)}Form.value)">
          |  ${indent(fieldsForForm(entity, entityName), 2)}
          |  <button type="submit" class="btn btn-lg btn-primary btn-block" i18n>OK</button>
@@ -265,7 +265,23 @@ object FromModel extends App {
     val printWriter = new PrintWriter(s"${componentDir}/${cToShell(entityName)}.component.ts", "utf-8")
 
     val template =
-      s"""// ${cToPascal(entityName)}.component.ts: 100% generated, do not edit.
+      s"""// ${cToShell(entityName)}.component.ts: 100% generated, do not edit.
+         |import { Component, OnInit } from '@angular/core';
+         |import { ${cToPascal(entityName)}Service } from '../${cToShell(entityName)}.service';
+         |
+         |@Component({
+         |  selector: '${cToShell(entityName)}',
+         |  templateUrl: './${cToShell(entityName)}.component.html',
+         |  styleUrls: ['./${cToShell(entityName)}.component.css']
+         |})
+         |export class ${cToPascal(entityName)}Component implements OnInit {
+         |
+         |  constructor(public ${cToCamel(entityName)}Service: ${cToPascal(entityName)}Service) {}
+         |
+         |  ngOnInit() {
+         |  }
+         |
+         |}
          |
        """.stripMargin
 
