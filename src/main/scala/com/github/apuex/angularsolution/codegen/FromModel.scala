@@ -253,7 +253,7 @@ object FromModel extends App {
     case "identity" => textForField(name, _type, length, required)
     case "long" => textForField(name, _type, length, required)
     case "decimal" => textForField(name, _type, length, required)
-    case "string" => if(length.toInt > 256) textAreaForField(name, _type, length, required) else textForField(name, _type, length, required)
+    case "string" => if(length != null && !length.isEmpty() && length.toInt > 256) textAreaForField(name, _type, length, required) else textForField(name, _type, length, required)
     case "timestamp" => datetimeForField(name, _type, length, required)
     case "float" => textForField(name, _type, length, required)
     case "double" => textForField(name, _type, length, required)
